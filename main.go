@@ -6,21 +6,14 @@ import (
 )
 
 func main() {
-	wordPtr := flag.String("word", "foo", "a word")
-
-	numbrPtr := flag.Int("number", 42, "A number")
-	forkPtr := flag.Bool("flag", false, "a bool")
-
-	var svar string
-	flag.StringVar(&svar, "svar", "bar", "a string var")
-
+	server := flag.Bool("server", false, "Run as a server, otherwise starts a client")
 	flag.Parse()
 
-	fmt.Println("word:", *wordPtr)
-	fmt.Println("number:", *numbrPtr)
-	fmt.Println("bool:", *forkPtr)
-	fmt.Println("svar:", svar)
-	fmt.Println("tail:", flag.Args())
-
-	fmt.Printf("Hello world")
+	if *server {
+		fmt.Println("Starting server")
+		StartServer()
+	} else {
+		fmt.Println("Starting client")
+		StartClient()
+	}
 }
