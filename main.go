@@ -6,14 +6,20 @@ import (
 )
 
 func main() {
-	server := flag.Bool("server", false, "Run as a server, otherwise starts a client")
+	server := flag.String("type", "tcp-server", "Run as a server, otherwise starts a client")
 	flag.Parse()
 
-	if *server {
-		fmt.Println("Starting server")
+	switch *server {
+	case "tcp-server":
+		fmt.Println("Starting TCP server")
 		StartServer()
-	} else {
-		fmt.Println("Starting client")
+	case "tcp-client":
+		fmt.Println("Starting TCP client")
 		StartClient()
+	case "line-echo":
+		fmt.Println("Starting line echo server")
+		StartLineEchoServer()
+	default:
+		fmt.Println("Invalid server type")
 	}
 }
