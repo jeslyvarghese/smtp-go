@@ -19,6 +19,12 @@ func main() {
 	case "line-echo":
 		fmt.Println("Starting line echo server")
 		StartLineEchoServer()
+	case "smtp-server":
+		fmt.Println("Starting SMTP server")
+		StartSMTPServer()
+	case "smtp-client":
+		fmt.Println("Starting SMTP client")
+		StartSMTPClient()
 	default:
 		fmt.Println("Invalid server type")
 	}
