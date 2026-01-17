@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"container/list"
 	"io"
 	"log"
 	"net"
 	"os"
+
+	"smtp-go.quadratic.xyz/internal/utils"
 )
 
 func StartSMTPServer() {
@@ -40,24 +43,19 @@ func StartSMTPServer() {
 
 func handleSMTPConnection(conn net.Conn, logger *log.Logger) {
 	defer conn.Close()
-
-	buf := make([]byte, 1024)
+	reader := bufio.NewReader(conn)
 	for {
-		n, err := conn.Read(buf)
+		// Simple SMTP command handling
+		command, err := utils.ReadLine(conn, logger, reader)
 		if err != nil {
-			if err != io.EOF {
-				logger.Printf("Error reading from %s: %v\n", conn.RemoteAddr(), err)
-			}
+			logger.Printf("Error reading command from %s: %v\n", conn.RemoteAddr(), err)
 			return
 		}
-
-		// Simple SMTP command handling
-		command := string(buf[:n])
 		logger.Printf("Received command from %s: %s", conn.RemoteAddr(), command)
 
 		// Respond to HELO command
 		if command[:4] == "HELO" {
-			response := "250 Hello\r\n"
+			response := "250-us11-012mrc.dh.atmailcloud.com Hello 27-33-184-51.static.tpgi.com.au [27.33.184.51]" + "\r\n" + "250-SIZE 52428800" + "\r\n" + "250-8BITMIME" + "\r\n" + "250-PIPELINING" + "\r\n" + "250-AUTH LOGIN PLAIN" + "\r\n" + "250-CHUNKING" + "\r\n" + "250 HELO" + "\r\n"
 			if _, err := conn.Write([]byte(response)); err != nil {
 				logger.Printf("Error writing to %s: %v\n", conn.RemoteAddr(), err)
 				return
@@ -65,16 +63,11 @@ func handleSMTPConnection(conn net.Conn, logger *log.Logger) {
 		}
 
 		// Wait For MAIL FROM command
-
-		n, err = conn.Read(buf)
+		command, err = utils.ReadLine(conn, logger, reader)
 		if err != nil {
-			if err != io.EOF {
-				logger.Printf("Error reading from %s: %v\n", conn.RemoteAddr(), err)
-			}
+			logger.Printf("Error reading command from %s: %v\n", conn.RemoteAddr(), err)
 			return
 		}
-
-		command = string(buf[:n])
 		logger.Printf("Received command from %s: %s", conn.RemoteAddr(), command)
 
 		if command[:9] == "MAIL FROM" {
@@ -87,15 +80,11 @@ func handleSMTPConnection(conn net.Conn, logger *log.Logger) {
 
 		// Wait for RCPT TO command
 
-		n, err = conn.Read(buf)
+		command, err = utils.ReadLine(conn, logger, reader)
 		if err != nil {
-			if err != io.EOF {
-				logger.Printf("Error reading from %s: %v\n", conn.RemoteAddr(), err)
-			}
+			logger.Printf("Error reading command from %s: %v\n", conn.RemoteAddr(), err)
 			return
 		}
-
-		command = string(buf[:n])
 		logger.Printf("Received command from %s: %s", conn.RemoteAddr(), command)
 
 		if command[:7] == "RCPT TO" {
@@ -108,15 +97,11 @@ func handleSMTPConnection(conn net.Conn, logger *log.Logger) {
 
 		// Wait for DATA command
 
-		n, err = conn.Read(buf)
+		command, err = utils.ReadLine(conn, logger, reader)
 		if err != nil {
-			if err != io.EOF {
-				logger.Printf("Error reading from %s: %v\n", conn.RemoteAddr(), err)
-			}
+			logger.Printf("Error reading command from %s: %v\n", conn.RemoteAddr(), err)
 			return
 		}
-
-		command = string(buf[:n])
 		logger.Printf("Received command from %s: %s", conn.RemoteAddr(), command)
 
 		if command[:4] == "DATA" {
@@ -131,19 +116,20 @@ func handleSMTPConnection(conn net.Conn, logger *log.Logger) {
 
 		var data string
 		for {
-			n, err = conn.Read(buf)
+			line, err := utils.ReadLine(conn, logger, reader)
 			if err != nil {
 				if err != io.EOF {
 					logger.Printf("Error reading from %s: %v\n", conn.RemoteAddr(), err)
 				}
-				return
-			}
-
-			line := string(buf[:n])
-			if line == ".\r\n" {
 				break
 			}
-			data += line
+
+			logger.Printf("Received data line from %s: %s", conn.RemoteAddr(), line)
+			if line == "." {
+				logger.Printf("End of data from %s", conn.RemoteAddr())
+				break
+			}
+			data += line + "\r\n"
 		}
 
 		logger.Printf("Received email data from %s:\n%s", conn.RemoteAddr(), data)
@@ -158,15 +144,13 @@ func handleSMTPConnection(conn net.Conn, logger *log.Logger) {
 
 		// Wait For QUIT command
 
-		n, err = conn.Read(buf)
+		command, err = utils.ReadLine(conn, logger, reader)
 		if err != nil {
 			if err != io.EOF {
 				logger.Printf("Error reading from %s: %v\n", conn.RemoteAddr(), err)
 			}
 			return
 		}
-
-		command = string(buf[:n])
 		logger.Printf("Received command from %s: %s", conn.RemoteAddr(), command)
 
 		if command[:4] == "QUIT" {

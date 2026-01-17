@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"log"
 	"net"
 	"os"
 	"time"
+
+	"smtp-go.quadratic.xyz/internal/utils"
 )
 
 func StartSMTPClient() {
@@ -19,7 +22,7 @@ func StartSMTPClient() {
 		RetryDelay:    2 * time.Second,
 	}
 
-	conn, err := net.DialTimeout("smtp", config.Address, config.Timeout)
+	conn, err := net.DialTimeout("tcp", config.Address, config.Timeout)
 	if err != nil {
 		logger.Printf("Failed to connect after %d attempts: %v\n", config.RetryAttempts, err)
 		return
@@ -40,23 +43,33 @@ func StartSMTPClient() {
 		return
 	}
 
-	if err := conn.SetReadDeadline(time.Now().Add(config.Timeout)); err != nil {
-		logger.Printf("Failed to set read deadline: %v\n", err)
-		return
-	}
+	reader := bufio.NewReader(conn)
 
-	buf := make([]byte, 1024)
-	n, err := conn.Read(buf)
+	response, err := utils.ReadLine(conn, logger, reader)
 	if err != nil {
 		logger.Printf("Failed to read data: %v\n", err)
 		return
 	}
 
-	response := string(buf[:n])
 	logger.Printf("Received response: %s\n", response)
 	if response[:3] != "250" {
 		logger.Printf("Unexpected response from server: %s\n", response)
 		return
+	}
+
+	if response[3] == '-' {
+		// Read multiline response
+		for {
+			line, err := utils.ReadLine(conn, logger, reader)
+			if err != nil {
+				logger.Printf("Failed to read data: %v\n", err)
+				return
+			}
+			logger.Printf("Received response: %s\n", line)
+			if line[3] != '-' {
+				break
+			}
+		}
 	}
 
 	// Send MAIL FROM command
@@ -72,18 +85,14 @@ func StartSMTPClient() {
 		return
 	}
 
-	if err := conn.SetReadDeadline(time.Now().Add(config.Timeout)); err != nil {
-		logger.Printf("Failed to set read deadline: %v\n", err)
-		return
-	}
+	// Read response
 
-	n, err = conn.Read(buf)
+	response, err = utils.ReadLine(conn, logger, reader)
 	if err != nil {
 		logger.Printf("Failed to read data: %v\n", err)
 		return
 	}
 
-	response = string(buf[:n])
 	logger.Printf("Received response: %s\n", response)
 	if response[:3] != "250" {
 		logger.Printf("Unexpected response from server: %s\n", response)
@@ -102,18 +111,12 @@ func StartSMTPClient() {
 		return
 	}
 
-	if err := conn.SetReadDeadline(time.Now().Add(config.Timeout)); err != nil {
-		logger.Printf("Failed to set read deadline: %v\n", err)
-		return
-	}
-
-	n, err = conn.Read(buf)
+	// Read response
+	response, err = utils.ReadLine(conn, logger, reader)
 	if err != nil {
 		logger.Printf("Failed to read data: %v\n", err)
 		return
 	}
-
-	response = string(buf[:n])
 	logger.Printf("Received response: %s\n", response)
 	if response[:3] != "250" {
 		logger.Printf("Unexpected response from server: %s\n", response)
@@ -137,13 +140,13 @@ func StartSMTPClient() {
 		return
 	}
 
-	n, err = conn.Read(buf)
+	// Read response
+	response, err = utils.ReadLine(conn, logger, reader)
 	if err != nil {
 		logger.Printf("Failed to read data: %v\n", err)
 		return
 	}
 
-	response = string(buf[:n])
 	logger.Printf("Received response: %s\n", response)
 	if response[:3] != "354" {
 		logger.Printf("Unexpected response from server: %s\n", response)
@@ -162,18 +165,13 @@ func StartSMTPClient() {
 		return
 	}
 
-	if err := conn.SetReadDeadline(time.Now().Add(config.Timeout)); err != nil {
-		logger.Printf("Failed to set read deadline: %v\n", err)
-		return
-	}
-
-	n, err = conn.Read(buf)
+	// Read response
+	response, err = utils.ReadLine(conn, logger, reader)
 	if err != nil {
 		logger.Printf("Failed to read data: %v\n", err)
 		return
 	}
 
-	response = string(buf[:n])
 	logger.Printf("Received response: %s\n", response)
 	if response[:3] != "250" {
 		logger.Printf("Unexpected response from server: %s\n", response)
@@ -192,20 +190,15 @@ func StartSMTPClient() {
 		return
 	}
 
-	if err := conn.SetReadDeadline(time.Now().Add(config.Timeout)); err != nil {
-		logger.Printf("Failed to set read deadline: %v\n", err)
-		return
-	}
-
-	n, err = conn.Read(buf)
+	// Read response
+	response, err = utils.ReadLine(conn, logger, reader)
 	if err != nil {
 		logger.Printf("Failed to read data: %v\n", err)
 		return
 	}
 
-	response = string(buf[:n])
 	logger.Printf("Received response: %s\n", response)
-	if response[:3] != "250" {
+	if response[:3] != "221" {
 		logger.Printf("Unexpected response from server: %s\n", response)
 		return
 	}
