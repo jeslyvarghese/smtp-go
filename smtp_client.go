@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	cmd "smtp-go.quadratic.xyz/internal/smtp/client"
 	"smtp-go.quadratic.xyz/internal/utils"
 )
 
@@ -31,14 +32,8 @@ func StartSMTPClient() {
 
 	logger.Printf("Connected to %s\n", config.Address)
 
-	if err := conn.SetWriteDeadline(time.Now().Add(config.Timeout)); err != nil {
-		logger.Printf("Failed to set write deadline: %v\n", err)
-		return
-	}
-
 	// Send HELO/EHLO command
-	message := "HELO localhost\r\n"
-	if _, err := conn.Write([]byte(message)); err != nil {
+	if err := cmd.Helo(conn, logger); err != nil {
 		logger.Printf("Failed to send data: %v\n", err)
 		return
 	}
@@ -74,13 +69,7 @@ func StartSMTPClient() {
 
 	// Send MAIL FROM command
 
-	if err := conn.SetWriteDeadline(time.Now().Add(config.Timeout)); err != nil {
-		logger.Printf("Failed to set write deadline: %v\n", err)
-		return
-	}
-
-	mailFrom := "MAIL FROM:<someone@localhost>\r\n"
-	if _, err := conn.Write([]byte(mailFrom)); err != nil {
+	if err := cmd.MailFrom(conn, logger, "someone@localhost"); err != nil {
 		logger.Printf("Failed to send MAIL FROM command: %v\n", err)
 		return
 	}
@@ -100,13 +89,7 @@ func StartSMTPClient() {
 	}
 
 	// SEND RCPT TO command
-	if err := conn.SetWriteDeadline(time.Now().Add(config.Timeout)); err != nil {
-		logger.Printf("Failed to set write deadline: %v\n", err)
-		return
-	}
-
-	rcptTo := "RCPT TO:<recipient@localhost>\r\n"
-	if _, err := conn.Write([]byte(rcptTo)); err != nil {
+	if err := cmd.RcptTo(conn, logger, "recipient@localhost"); err != nil {
 		logger.Printf("Failed to send RCPT TO command: %v\n", err)
 		return
 	}
@@ -124,19 +107,8 @@ func StartSMTPClient() {
 	}
 
 	// Send DATA command
-	if err := conn.SetWriteDeadline(time.Now().Add(config.Timeout)); err != nil {
-		logger.Printf("Failed to set write deadline: %v\n", err)
-		return
-	}
-
-	dataCmd := "DATA\r\n"
-	if _, err := conn.Write([]byte(dataCmd)); err != nil {
+	if err := cmd.Data(conn, logger); err != nil {
 		logger.Printf("Failed to send DATA command: %v\n", err)
-		return
-	}
-
-	if err := conn.SetReadDeadline(time.Now().Add(config.Timeout)); err != nil {
-		logger.Printf("Failed to set read deadline: %v\n", err)
 		return
 	}
 
@@ -154,13 +126,8 @@ func StartSMTPClient() {
 	}
 
 	// Send email content
-	if err := conn.SetWriteDeadline(time.Now().Add(config.Timeout)); err != nil {
-		logger.Printf("Failed to set write deadline: %v\n", err)
-		return
-	}
-
-	emailContent := "Subject: Test Email\r\n\r\nThis is a test email.\r\n.\r\n"
-	if _, err := conn.Write([]byte(emailContent)); err != nil {
+	emailContent := "Subject: Test Email\r\n\r\nThis is a test email sent from the SMTP client."
+	if err := cmd.SendEmailContent(conn, logger, emailContent); err != nil {
 		logger.Printf("Failed to send email content: %v\n", err)
 		return
 	}
@@ -179,13 +146,7 @@ func StartSMTPClient() {
 	}
 
 	// Send QUIT command
-	if err := conn.SetWriteDeadline(time.Now().Add(config.Timeout)); err != nil {
-		logger.Printf("Failed to set write deadline: %v\n", err)
-		return
-	}
-
-	quitCmd := "QUIT\r\n"
-	if _, err := conn.Write([]byte(quitCmd)); err != nil {
+	if err := cmd.Quit(conn, logger); err != nil {
 		logger.Printf("Failed to send QUIT command: %v\n", err)
 		return
 	}
