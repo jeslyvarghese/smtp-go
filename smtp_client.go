@@ -17,7 +17,7 @@ func StartSMTPClient() {
 	logger.Println("SMTP Client started")
 
 	config := ClientConfig{
-		Address:       "localhost:8080",
+		Address:       "localhost:1025",
 		Timeout:       5 * time.Second,
 		RetryAttempts: 3,
 		RetryDelay:    2 * time.Second,
@@ -47,7 +47,7 @@ func StartSMTPClient() {
 	}
 
 	logger.Printf("Received response: %s\n", response)
-	if response[:3] != "250" {
+	if response[:3] != "250" && response[:3] != "220" {
 		logger.Printf("Unexpected response from server: %s\n", response)
 		return
 	}
@@ -120,7 +120,7 @@ func StartSMTPClient() {
 	}
 
 	logger.Printf("Received response: %s\n", response)
-	if response[:3] != "354" {
+	if response[:3] != "250" && response[:3] != "354" {
 		logger.Printf("Unexpected response from server: %s\n", response)
 		return
 	}
@@ -140,7 +140,7 @@ func StartSMTPClient() {
 	}
 
 	logger.Printf("Received response: %s\n", response)
-	if response[:3] != "250" {
+	if response[:3] != "354" && response[:3] != "250" {
 		logger.Printf("Unexpected response from server: %s\n", response)
 		return
 	}
